@@ -13,6 +13,8 @@ README
 import rospy
 import rospkg
 from owlready2 import *
+from rdflib.plugins.sparql import prepareQuery
+from rdflib import URIRef
 
 import actionlib
 
@@ -33,6 +35,7 @@ from init_models import *
 tomasys = None    # owl model with the tomasys ontology
 onto = None       # owl model with the application model as individuals of tomasys classes
 mock = True       # whether we are running a mock system (True), so reasoning happens in isolation, or connected t the real system
+graph = None
 
 # get an instance of RosPack with the default search paths
 rospack = rospkg.RosPack()
@@ -414,25 +417,14 @@ if __name__ == '__main__':
     else:
         print("Unknown ontology file: ", onto_file)
 
-    # Start rosnode stuff
-    rospy.init_node('mros1_reasoner')
-    sub_system_state = rospy.Subscriber('system_state', SystemState, callbackSystemState)
-    sub_diagnostics = rospy.Subscriber('/diagnostics', DiagnosticArray, callbackDiagnostics)
+    print(onto_file)
 
-    #for testing YUMI in error
-    # sys_state = SystemState(yumi_status = 1, camera_status = 1, tag_detection_status = 99) # no tag detected
-    # sys_state = SystemState(yumi_status = 1, camera_status = 99, tag_detection_status = 1) # camera error
+    graph = default_world.as_rdflib_graph()
+    graph.get_context(onto)
 
-    timer = rospy.Timer(rospy.Duration(3.), timer_cb)
-
-    graph_manipulation_client = actionlib.SimpleActionClient(
-            'cheops_graph_manipulation_action_server',
-            GraphManipulationActionAction)
-    # graph_manipulation_client.wait_for_server()
-
-    rosgraph_manipulator_client = actionlib.SimpleActionClient(
-        'rosgraph_manipulator_action_server',
-        MvpReconfigurationAction)
-    # rosgraph_manipulator_client.wait_for_server()
-
-    rospy.spin()
+    tomasys = URIRef('http://metacontrol.org/tomasys#')
+    abb_scn2 = URIRef('http://abb_scenario2#')
+    q = prepareQuery('''SELECT ?p
+                       WHERE {?p ?o tomasys:Function .}''', initNs={'abb_scn2':abb_scn2, 'tomasys':tomasys})
+    for row in graph.query(q):
+        print(row)
