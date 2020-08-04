@@ -417,14 +417,23 @@ if __name__ == '__main__':
     else:
         print("Unknown ontology file: ", onto_file)
 
-    print(onto_file)
-
     graph = default_world.as_rdflib_graph()
     graph.get_context(onto)
 
     tomasys = URIRef('http://metacontrol.org/tomasys#')
     abb_scn2 = URIRef('http://abb_scenario2#')
-    q = prepareQuery('''SELECT ?p
-                       WHERE {?p ?o tomasys:Function .}''', initNs={'abb_scn2':abb_scn2, 'tomasys':tomasys})
-    for row in graph.query(q):
+    rdf_syn = URIRef('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
+    ros_nav = URIRef('http://ros_navigation#')
+
+    q1 = prepareQuery('''SELECT ?p ?e ?v
+                       WHERE {?p rdf_syn:type tomasys:FunctionDesign .
+                              ?p tomasys:hasQAestimation ?e .
+                              ?e tomasys:hasValue ?v }''', initNs={'abb_scn2':abb_scn2, 'tomasys':tomasys, 'rdf_syn':rdf_syn, 'ros_nav':ros_nav})
+
+    q2 = prepareQuery('''SELECT ?p ?v
+                       WHERE {?p tomasys:solvesF ?o.
+                              ?p tomasys:hasQAestimation ?e .
+                              ?e tomasys:hasValue ?v }''', initNs={'abb_scn2':abb_scn2, 'tomasys':tomasys, 'rdf_syn':rdf_syn, 'ros_nav':ros_nav})
+
+    for row in graph.query(q2):
         print(row)
